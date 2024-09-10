@@ -1,8 +1,16 @@
+import pandas as pd
 import pywhatkit as kit
+import pyautogui
 import keyboard
 import time
 
-def enviar_mensagem(numero, nome, primeira_execucao):
+# Função para extrair o primeiro nome e formatar com a primeira letra maiúscula
+def formatar_nome_completo(nome_completo):
+    primeiro_nome = nome_completo.split()[0].capitalize()
+    return primeiro_nome
+
+# Função para enviar a mensagem pelo WhatsApp
+def enviar_mensagem(numero, nome):
     mensagem = f"""Bom dia, {nome}. Tudo bem?
 
 Prazer em conhecê-lo. Meu nome é Yuri Carneiro e sou da W1 Consultoria Financeira, a primeira e maior consultoria financeira do Brasil. 📊
@@ -14,42 +22,29 @@ Gostaria de convidá-lo para uma reunião por videoconferência 📹, onde farem
 Por gentileza, poderia me informar um dia e horário que lhe seja conveniente para essa reunião?
 
 Fico à disposição e no aguardo de seu retorno!"""
-
-    # Tempo de espera diferenciado para a primeira execução
-    if primeira_execucao:
-        wait_time = 15  # Aumente o tempo para a primeira execução
-    else:
-        wait_time = 5  # Tempo reduzido para as execuções subsequentes
-
-    # Enviar mensagem com tempo ajustado
-    kit.sendwhatmsg_instantly(f"+{numero}", mensagem, wait_time=wait_time, tab_close=True)
-
-    # Aguarde um pouco para garantir que a mensagem seja enviada
-    time.sleep(wait_time)
-
-    # Fecha a guia aberta (Ctrl + W)
-    keyboard.press_and_release('ctrl+w')
-
-# Loop para cadastro de mensagens
-contatos = []
-while True:
-    numero_cliente = input("Digite o número do WhatsApp do cliente (com código do país e DDD): ")
-    nome_cliente = input("Digite o nome do cliente: ")
-    contatos.append((numero_cliente, nome_cliente))
     
-    continuar = input("Deseja adicionar outro contato? (s/n): ")
-    if continuar.lower() != 's':
-        break
+    hora = int(time.strftime('%H')) + 1
+    minuto = int(time.strftime('%M'))
+    kit.sendwhatmsg(f"{numero}", mensagem, hora, minuto)
+    time.sleep(15)
+    pyautogui.hotkey('ctrl', 'w')  # Fecha a guia do WhatsApp Web
+    time.sleep(2)
 
-# Enviar mensagens para todos os contatos cadastrados
-primeira_execucao = True
-for numero_cliente, nome_cliente in contatos:
-    enviar_mensagem(numero_cliente, nome_cliente, primeira_execucao)
-    primeira_execucao = False  # Após a primeira execução, ajuste o tempo para as seguintes
+# Carregar a planilha ignorando a primeira linha
+df = pd.read_excel(r'C:\Users\AMD\OneDrive\Documentos\RemuneracaoAtivos.xlsx', header=1)
 
+# Imprime os nomes das colunas para verificar
+print(df.columns)
 
-#pip install pywhatkit
-#pip install pyautogui
-# pip install keyboard
+# Agora, ajuste o código com base nos nomes das colunas identificados
+for index, row in df.iterrows():
+    status = row['STATUS LIGAÇÃO']  # Ajuste com o nome correto da coluna
+    if status in ['Caixa Postal', 'Desligou instantaneo']:
+        nome_cliente = formatar_nome_completo(row['NOME'])  # Ajuste com o nome correto da coluna
+        numero_cliente = row['CONTATO']  # Ajuste com o nome correto da coluna
 
+        # Verificar se o número não é nulo ou 'N/C'
+        if pd.notna(numero_cliente) and numero_cliente != 'N/C':
+            enviar_mensagem(numero_cliente, nome_cliente)
 
+print("Mensagens enviadas com sucesso!")
